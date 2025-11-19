@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
 from db import SessionLocal, engine
-from models import Base, Job
+from models import Base, Job, News
 from scraper import scrape_keejob
+from news_scraper import scrape_mosaique_news
 
 app = Flask(__name__)
 
@@ -69,6 +70,61 @@ def scrape_new_only():
     db.close()
 
     return {"message": "New jobs scraped", "new_jobs": added, "count": count, "pages_scraped": page}
+
+
+@app.route("/news/scrape", methods=["POST"])
+def scrape_news():
+    db = SessionLocal()
+    scraped = scrape_mosaique_news()
+    added = 0
+
+    for n in scraped:
+        exists = db.query(News).filter(News.url == n["url"]).first()
+        if exists:
+            continue
+
+        news = News(**n)
+        db.add(news)
+        added += 1
+
+    db.commit()
+    db.close()
+
+    return {"message": "News scrape completed", "new_articles": added, "total_scraped": len(scraped)}
+
+
+@app.route("/news")
+def list_news():
+    db = SessionLocal()
+    
+    limit = request.args.get('limit', type=int)
+    offset = request.args.get('offset', default=0, type=int)
+    
+    query = db.query(News).order_by(News.id.desc())
+    
+    total = query.count()
+    
+    query = query.offset(offset)
+    if limit:
+        query = query.limit(limit)
+    
+    news = query.all()
+    db.close()
+
+    return jsonify({
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "results": [
+            {
+                "id": n.id,
+                "title": n.title,
+                "url": n.url,
+                "source": n.source,
+                "scraped_at": n.scraped_at
+            } for n in news
+        ]
+    })
 
 
 @app.route("/jobs")

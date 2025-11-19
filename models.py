@@ -13,3 +13,13 @@ class Job(Base):
     url = Column(String, unique=True)
     description = Column(Text)
     date_posted = Column(String)
+
+
+class News(Base):
+    __tablename__ = "news"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String)
+    url = Column(String, unique=True)
+    source = Column(String, default="mosaiquefm")
+    scraped_at = Column(String)
