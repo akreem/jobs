@@ -77,6 +77,7 @@ def scrape_news():
     db = SessionLocal()
     scraped = scrape_mosaique_news()
     added = 0
+    added_articles = []
 
     for n in scraped:
         exists = db.query(News).filter(News.url == n["url"]).first()
@@ -86,11 +87,12 @@ def scrape_news():
         news = News(**n)
         db.add(news)
         added += 1
+        added_articles.append(n)
 
     db.commit()
     db.close()
 
-    return {"message": "News scrape completed", "new_articles": added, "total_scraped": len(scraped)}
+    return {"message": "News scrape completed", "new_articles": added, "articles": added_articles, "total_scraped": len(scraped)}
 
 
 @app.route("/news")
